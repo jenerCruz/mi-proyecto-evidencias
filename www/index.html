@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEGUIMIENTO DE EVIDENCIAS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="./manifest.json">
+    <style>
+        /* Estilos y Variables Generales */
+        :root {
+            --primary-color: #4f46e5;
+            /* Indigo 600 */
+            --secondary-color: #3730a3;
+            /* Indigo 800 */
+            --text-color: #1f2937;
+            /* Gray 800 */
+            --bg-color: #f3f4f6;
+            /* Gray 100 */
+            --card-bg: #ffffff;
+            --status-complete: #10b981;
+            /* Emerald 500 */
+            --status-partial: #f59e0b;
+            /* Amber 500 */
+            --status-pending: #ef4444;
+            /* Red 500 */
+            --status-not-started: #9ca3af;
+            /* Gray 400 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: auto;
+            padding: 1rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .day-card {
+            border: 2px solid var(--card-bg);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            height: 100%;
+            min-height: 120px;
+        }
+
+        .day-status {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-top: 2.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .status-complete {
+            border-left-color: var(--status-complete) !important;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+
+        .status-partial {
+            border-left-color: var(--status-partial) !important;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        .status-pending {
+            border-left-color: var(--status-pending) !important;
+            background-color: rgba(239, 68, 68, 0.1);
+        }
+
+        .status-not-started {
+            border-left-color: var(--status-not-started) !important;
+            background-color: var(--bg-color);
+        }
+
+        .week-status-complete {
+            background-color: var(--status-complete);
+        }
+
+        .week-status-partial {
+            background-color: var(--status-partial);
+        }
+
+        .week-status-pending {
+            background-color: var(--status-pending);
+        }
+
+        .week-status-not-started {
+            background-color: var(--status-not-started);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        /* Estilo para las tarjetas de usuario en el Dashboard */
+        .profile-card {
+            cursor: pointer;
+            border-left: 4px solid var(--primary-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .profile-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="text-center py-6 bg-white card shadow-lg mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-2 text-indigo-600" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                SEGUIMIENTO DE EVIDENCIAS
+            </h1>
+            <p class="text-gray-500 mt-1">Sincronización Multi-Usuario vía GitHub Gist</p>
+        </header>
+
+        <div id="configSection" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 card"
+            role="alert">
+            <p class="font-bold">¡Atención! Configuración Requerida</p>
+            <p class="text-sm">Para iniciar la sincronización, ingresa tu ID de Perfil y las credenciales del Gist (solo
+                el Administrador necesita el Token de Escritura).</p>
+            <button id="openConfigBtn"
+                class="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md">
+                Configurar Sincronización
+            </button>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+            <div class="text-lg font-semibold text-gray-700 mb-2 md:mb-0">
+                <span id="currentProfileDisplay" class="text-indigo-600"></span>
+            </div>
+            <button id="notifyBtn"
+                class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                Activar Notificaciones
+            </button>
+        </div>
+
+        <div id="dashboardContainer">
+            <h2 class="text-2xl font-bold mb-4 text-gray-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 8v8m-4-8v8m-4-8v8m8-13A6 6 0 004 8v12a2 2 0 002 2h12a2 2 0 002-2V8a6 6 0 00-6-6z" />
+                </svg>
+                Dashboard de Progreso General
+            </h2>
+
+            <div id="generalSummary" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                </div>
+
+            <h3 class="text-xl font-bold mb-3 text-gray-700 mt-6 border-t pt-4">Seguimiento Individual por Perfil</h3>
+            
+            <div id="profilesDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                </div>
+        </div>
+
+
+        <div id="calendarContainer" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <button id="backToDashboardBtn"
+                    class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Volver al Dashboard
+                </button>
+                <h2 id="currentMonthTitle" class="text-2xl font-bold text-gray-700 text-right"></h2>
+            </div>
+            
+            <div id="monthDisplay" class="space-y-6">
+                </div>
+        </div>
+    </div>
+
+    <div id="configModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden items-center justify-center">
+        <div class="bg-white card p-6 w-11/12 max-w-lg shadow-xl">
+            <h3 class="text-xl font-bold mb-4 border-b pb-2 text-indigo-600">Configuración de Sincronización</h3>
+            <p class="text-sm text-gray-600 mb-4">Ingresa tu ID y las credenciales del Gist que se usa para la
+                sincronización del equipo.</p>
+
+            <label class="block mb-2">
+                <span class="text-gray-700 font-semibold">Tu ID de Perfil (Nombre):</span>
+                <input type="text" id="profileIdInput" placeholder="Ej: Pedro Perez"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+            </label>
+
+            <label class="block mb-2">
+                <span class="text-gray-700 font-semibold">ID del Gist Compartido:</span>
+                <input type="text" id="gistIdInput" placeholder="Ej: c6f0ef7f2773bd72980dd1dda9efa136"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+            </label>
+
+            <label class="block mb-4">
+                <span class="text-gray-700 font-semibold">Token Personal de GitHub (PAT):</span>
+                <input type="password" id="gistTokenInput" placeholder="Solo si vas a cargar evidencia"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500">
+                <small class="text-xs text-red-500">Necesario para **escribir** (cargar evidencia). Almacenado solo
+                    localmente.</small>
+            </label>
+
+            <div id="configMessage" class="mt-4 p-2 text-sm rounded hidden"></div>
+
+            <div class="flex justify-end space-x-3">
+                <button id="closeConfigBtn"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition">
+                    Cerrar
+                </button>
+                <button id="saveConfigBtn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md">
+                    Guardar y Sincronizar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="evidenceModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden items-center justify-center">
+        <div class="bg-white card p-6 w-11/12 max-w-3xl shadow-xl max-h-screen overflow-y-auto">
+            <h3 id="evidenceModalTitle" class="text-2xl font-bold mb-4 border-b pb-2 text-indigo-600">Evidencia de:</h3>
+            <div id="evidenceDisplay" class="mb-4">
+                </div>
+            <div id="syncStatus" class="text-sm mt-4 p-2 rounded text-center hidden"></div>
+
+            <div class="flex justify-end space-x-3">
+                <button id="closeEvidenceModalBtn"
+                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="messageModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-[100] hidden items-center justify-center">
+        <div class="bg-white card p-6 w-11/12 max-w-sm shadow-xl">
+            <h4 id="messageModalTitle" class="text-xl font-bold mb-3 text-indigo-600"></h4>
+            <p id="messageModalBody" class="text-gray-700 mb-4"></p>
+            <div class="flex justify-end">
+                <button id="closeMessageModalBtn"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pwaPrompt" class="fixed bottom-0 left-0 right-0 bg-indigo-600 text-white p-4 shadow-2xl z-40 hidden">
+        <div class="container flex justify-between items-center">
+            <span>Esta es una PWA. ¡Instálala para usarla sin conexión!</span>
+            <button id="installPwaBtn"
+                class="bg-indigo-400 hover:bg-indigo-300 text-white font-bold py-1 px-3 rounded-full text-sm">
+                Instalar App
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. CONFIGURACIÓN DE GIST Y FUNCIONES API
+        // =========================================================================
+
+        const GIST_FILE_NAME = 'profiles_metadata.json';
+        const GIST_URL = (gistId) => `https://api.github.com/gists/${gistId}`;
+
+        /**
+         * Muestra un modal de mensaje simple.
+         */
+        function showMessage(title, body) {
+            document.getElementById('messageModalTitle').textContent = title;
+            document.getElementById('messageModalBody').textContent = body;
+            document.getElementById('messageModal').classList.remove('hidden');
+            document.getElementById('messageModal').classList.add('flex');
+        }
+
+        document.getElementById('closeMessageModalBtn').addEventListener('click', () => {
+            document.getElementById('messageModal').classList.add('hidden');
+            document.getElementById('messageModal').classList.remove('flex');
+        });
+
+        /**
+         * Carga los metadatos de todos los perfiles desde el Gist remoto.
+         */
+        async function fetchGistMetadata(gistId) {
+            console.log("-> Intento de FETCH GIST:", gistId);
+            if (!gistId) return {};
+
+            try {
+                const url = GIST_URL(gistId);
+                const response = await fetch(url, { cache: 'no-store' });
+
+                if (response.status === 404) {
+                    console.error("Gist no encontrado. El Gist ID podría ser incorrecto.");
+                    showMessage("Error de Gist", "Gist no encontrado o ID incorrecto. Por favor, verifica el ID.");
+                    return {};
+                }
+
+                if (!response.ok) {
+                    console.error("Error al cargar Gist:", response.status, response.statusText);
+                    showMessage("Error de Carga", `Error al cargar el Gist: ${response.statusText}. ¿Credenciales de Token?`);
+                    return {};
+                }
+
+                const gist = await response.json();
+                const file = gist.files[GIST_FILE_NAME];
+
+                if (!file) {
+                    console.warn(`Archivo ${GIST_FILE_NAME} no encontrado en el Gist. Se inicializará al primer registro.`);
+                    return {};
+                }
+                
+                // Si el contenido del archivo es nulo, devolver objeto vacío
+                if (!file.content) return {};
+                console.log("<- GIST FETCH EXITOSO. Contenido recibido.");
+                return JSON.parse(file.content || '{}');
+            } catch (error) {
+                console.error("Error de red o JSON al cargar Gist:", error);
+                showMessage("Error Crítico de Red", "No se pudo conectar con GitHub Gist. Verifica tu conexión o el ID/Token.");
+                return {};
+            }
+        }
+
+        /**
+         * Sincroniza (escribe) los metadatos completos al Gist de GitHub.
+         */
+        async function updateGistMetadata(gistId, gistToken, allProfilesData) {
+            console.log("-> Intento de UPDATE GIST. Gist ID:", gistId);
+            if (!gistId || !gistToken) {
+                console.error("Faltan credenciales para escribir en el Gist.");
+                return false;
+            }
+
+            const payload = {
+                files: {
+                    [GIST_FILE_NAME]: {
+                        content: JSON.stringify(allProfilesData, null, 2)
+                    }
+                }
+            };
+            try {
+                const response = await fetch(GIST_URL(gistId), {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `token ${gistToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error("Error al actualizar Gist:", response.status, errorData);
+                    showMessage("Error de Escritura", `No se pudo sincronizar el Gist (Status ${response.status}). Token es inválido o no tiene permisos de 'gist'.`);
+                    return false;
+                }
+
+                console.log("<- Gist actualizado exitosamente.");
+                return true;
+
+            } catch (error) {
+                console.error("Error de red al actualizar Gist:", error);
+                return false;
+            }
+        }
+
+        // =========================================================================
+        // 2. INDEXEDDB CONFIGURACIÓN Y FUNCIONES (Almacenamiento Local de Archivos)
+        // =========================================================================
+        // (La lógica de IndexedDB se mantiene sin cambios)
+
+        const DB_NAME = 'EvidenceDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'EvidenceStore';
+
+        let db = null;
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                if (db) {
+                    return resolve(db);
+                }
+                if (!('indexedDB' in window)) {
+                    reject('IndexedDB no es compatible con este navegador.');
+                    return;
+                }
+
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = (event) => {
+                    console.error("Error al abrir IndexedDB:", event.target.error);
+                    reject('Error al abrir la base de datos local.');
+                };
+            });
+        }
+
+        /**
+         * Guarda o actualiza un archivo binario (Blob/File) en IndexedDB.
+         */
+        async function saveFile(key, file) {
+            const database = await openDB();
+            return new Promise((resolve, reject) => {
+                const transaction = database.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+
+                const data = {
+                    id: key,
+                    file: file,
+                    mimeType: file.type
+                };
+
+                const request = store.put(data);
+
+                request.onsuccess = () => resolve();
+                request.onerror = (event) => {
+                    console.error("Error al guardar archivo:", event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        /**
+         * Obtiene un archivo binario (Blob) de IndexedDB.
+         */
+        async function getFile(key) {
+            const database = await openDB();
+            return new Promise((resolve, reject) => {
+                const transaction = database.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+
+                const request = store.get(key);
+
+                request.onsuccess = (event) => {
+                    const result = event.target.result;
+                    if (result && result.file) {
+                        resolve(result.file);
+                    } else {
+                        resolve(null);
+                    }
+                };
+                request.onerror = (event) => {
+                    console.error("Error al obtener archivo:", event.target.error);
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        // =========================================================================
+        // 3. LÓGICA PRINCIPAL DE LA APLICACIÓN (Sincronización y UI)
+        // =========================================================================
+
+        // --- Variables Globales ---
+        let PROFILE_ID = localStorage.getItem('profileId') || '';
+        let GIST_ID = localStorage.getItem('gistId') || '';
+        let GIST_TOKEN = localStorage.getItem('gistToken') || '';
+        let ALL_PROFILES_METADATA = {}; // Objeto central de metadatos (Gist)
+        let deferredPrompt = null;
+        let currentMonthPointer = new Date();
+        currentMonthPointer.setDate(1); // Siempre apunta al inicio del mes
+        let currentViewingProfile = null; // Nuevo: El perfil que se está viendo en el calendario
+
+        // --- Lógica de Sincronización y Vistas ---
+
+        /**
+         * Cambia la vista activa.
+         * @param {string} view 'dashboard' o 'calendar'
+         */
+        function switchView(view) {
+            const dashboard = document.getElementById('dashboardContainer');
+            const calendar = document.getElementById('calendarContainer');
+            if (view === 'dashboard') {
+                dashboard.classList.remove('hidden');
+                calendar.classList.add('hidden');
+                currentViewingProfile = null; // Resetear el perfil de vista
+            } else if (view === 'calendar') {
+                dashboard.classList.add('hidden');
+                calendar.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Inicia el proceso de sincronización: Lee el Gist, fusiona datos, y renderiza.
+         */
+        async function initiateSync() {
+            console.log(">> Iniciando Sync...");
+            if (!GIST_ID || !PROFILE_ID) {
+                console.log(">> Faltan credenciales. Mostrando Configuración.");
+                document.getElementById('configSection').classList.remove('hidden');
+                document.getElementById('dashboardContainer').classList.add('hidden');
+                document.getElementById('calendarContainer').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('configSection').classList.add('hidden');
+            document.getElementById('currentProfileDisplay').textContent = `Perfil Activo (Tú): ${PROFILE_ID}`;
+
+            try {
+                const remoteData = await fetchGistMetadata(GIST_ID);
+                ALL_PROFILES_METADATA = remoteData; // El remoto es la fuente de verdad
+
+                // Después de la sincronización inicial, vamos al Dashboard
+                renderDashboard();
+                switchView('dashboard');
+
+            } catch (error) {
+                console.error("Error durante la sincronización inicial:", error);
+            }
+        }
+
+        /**
+         * Realiza el paso de escritura (Write) de la sincronización.
+         */
+        async function performWriteSync(dayKey) {
+            console.log(">> Preparando datos para escritura en Gist...");
+            let dayMetadata = ALL_PROFILES_METADATA[dayKey] || {};
+
+            // 1. Actualizar el metadato (para mi perfil)
+            dayMetadata[PROFILE_ID] = {
+                profileId: PROFILE_ID,
+                hasFile: true,
+                updatedAt: new Date().toISOString()
+            };
+            ALL_PROFILES_METADATA[dayKey] = dayMetadata;
+            
+            // 2. Escribir los metadatos completos al Gist
+            const success = await updateGistMetadata(GIST_ID, GIST_TOKEN, ALL_PROFILES_METADATA);
+            if (success) {
+                console.log(">> Escritura Gist exitosa. Re-renderizando.");
+                // Si la escritura es exitosa, se re-renderiza la vista actual
+                if (currentViewingProfile) {
+                     renderCalendar(currentViewingProfile);
+                } else {
+                     renderDashboard();
+                }
+                return true;
+            }
+            return false;
+        }
+
+
+        // --- Lógica del Dashboard General ---
+        
+        /**
+         * Renderiza el dashboard general con tarjetas de perfil y resúmenes.
+         */
+        function renderDashboard() {
+            const profilesDashboard = document.getElementById('profilesDashboard');
+            profilesDashboard.innerHTML = ''; // Limpiar
+            const generalSummary = document.getElementById('generalSummary');
+            generalSummary.innerHTML = ''; // Limpiar
+
+            const allDaysWithEvidence = Object.keys(ALL_PROFILES_METADATA);
+            const profiles = new Set();
+            let totalDaysInScope = 0; // Días con al menos un perfil con evidencia
+
+            // 1. Recolectar todos los perfiles y calcular métricas por perfil
+            const profileMetrics = {};
+
+            // Determinar un conjunto de días "relevantes" para el cálculo (ej. días que han pasado)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Determinar los perfiles únicos y el número de días que aplican
+            for (const dayKey in ALL_PROFILES_METADATA) {
+                const dayData = ALL_PROFILES_METADATA[dayKey];
+                
+                // Extraer la fecha del dayKey (YYYY-MM-DD)
+                const [year, month, dayNum] = dayKey.split('-').map(Number);
+                const dayDate = new Date(year, month - 1, dayNum);
+                dayDate.setHours(0, 0, 0, 0);
+                
+                // Solo contar días que ya pasaron o son hoy
+                if (dayDate.getTime() <= today.getTime()) {
+                    totalDaysInScope++; // Esto debe ser más robusto, contando días sin evidencia también. Por ahora, asumimos que si tiene metadata, aplica.
+                    
+                    for (const profileId in dayData) {
+                        if (profileId !== 'meta') {
+                            profiles.add(profileId);
+                            profileMetrics[profileId] = profileMetrics[profileId] || { completedDays: 0, totalApplicableDays: 0 };
+
+                            // Lógica más robusta: ¿Cuántos días aplican? 
+                            // Aquí se simplifica: Un día aplica si ya pasó o es hoy.
+                            profileMetrics[profileId].totalApplicableDays++; 
+
+                            if (dayData[profileId].hasFile) {
+                                profileMetrics[profileId].completedDays++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Para el resumen general: encontrar todos los días pasados/hoy
+            const allDaysEverWithMetadata = Object.keys(ALL_PROFILES_METADATA);
+            const firstDate = allDaysEverWithMetadata.length > 0 ? new Date(allDaysEverWithMetadata.sort()[0]) : new Date();
+            const lastDate = today;
+
+            let allApplicableDays = 0;
+            let totalCompletedAcrossAll = 0;
+
+            // Recorrer el rango de fechas desde la primera evidencia hasta hoy
+            for (let d = new Date(firstDate); d.getTime() <= lastDate.getTime(); d.setDate(d.getDate() + 1)) {
+                allApplicableDays++;
+                
+                const dayKey = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+                const dayData = ALL_PROFILES_METADATA[dayKey];
+
+                // Contar cuántos perfiles *han* cargado evidencia para este día
+                const profilesCompletedToday = dayData ? Object.keys(dayData).filter(id => id !== 'meta' && dayData[id].hasFile).length : 0;
+                if (profilesCompletedToday > 0) {
+                     totalCompletedAcrossAll++;
+                }
+            }
+
+            const totalProfiles = profiles.size;
+            
+            // 2. Renderizar Resumen General (Gráficos/Tarjetas)
+            const summaryHtml = `
+                <div class="card p-4 text-center shadow">
+                    <p class="text-4xl font-bold text-indigo-600">${totalProfiles}</p>
+                    <p class="text-sm font-semibold text-gray-500">Total de Perfiles</p>
+                </div>
+                <div class="card p-4 text-center shadow">
+                    <p class="text-4xl font-bold text-green-600">${totalCompletedAcrossAll}</p>
+                    <p class="text-sm font-semibold text-gray-500">Días con Evidencia (Gral.)</p>
+                </div>
+                <div class="card p-4 text-center shadow">
+                    <p class="text-4xl font-bold text-gray-600">${allApplicableDays}</p>
+                    <p class="text-sm font-semibold text-gray-500">Días con Límite Pasado</p>
+                </div>
+            `;
+            generalSummary.innerHTML = summaryHtml;
+
+
+            // 3. Renderizar Tarjetas de Perfil
+            let profileCardsHtml = '';
+
+            if (totalProfiles === 0) {
+                 profileCardsHtml = `<p class="text-gray-500 col-span-full">Aún no hay perfiles registrados en el Gist. El primer perfil que guarde su configuración aparecerá aquí.</p>`;
+            } else {
+                profiles.forEach(profileId => {
+                    const metrics = profileMetrics[profileId] || { completedDays: 0, totalApplicableDays: 0 };
+                    const progress = metrics.totalApplicableDays > 0 ? Math.round((metrics.completedDays / metrics.totalApplicableDays) * 100) : 0;
+                    const isMyProfile = profileId === PROFILE_ID;
+                    
+                    let progressColor = 'bg-gray-400';
+                    if (progress === 100) progressColor = 'bg-green-500';
+                    else if (progress > 50) progressColor = 'bg-amber-500';
+                    else if (progress > 0) progressColor = 'bg-red-500';
+
+                    profileCardsHtml += `
+                        <div class="profile-card card p-4 shadow-md bg-white hover:shadow-lg" data-profile-id="${profileId}">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="text-lg font-bold text-gray-800">${profileId} ${isMyProfile ? '<span class="text-xs font-semibold text-indigo-600">(TÚ)</span>' : ''}</h4>
+                                <span class="text-sm font-mono text-gray-600">${progress}%</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">${metrics.completedDays} de ${metrics.totalApplicableDays} días con evidencia</p>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="${progressColor} h-2.5 rounded-full" style="width: ${progress}%"></div>
+                            </div>
+                            <button class="mt-3 text-sm text-indigo-600 hover:text-indigo-800 font-semibold">Ver Calendario Individual →</button>
+                        </div>
+                    `;
+                });
+            }
+
+            profilesDashboard.innerHTML = profileCardsHtml;
+            attachProfileCardListeners();
+        }
+
+        /**
+         * Adjunta listeners a las tarjetas de perfil.
+         */
+        function attachProfileCardListeners() {
+            document.querySelectorAll('.profile-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const profileId = card.getAttribute('data-profile-id');
+                    if (profileId) {
+                        // 1. Establecer el perfil que vamos a ver
+                        currentViewingProfile = profileId;
+                        // 2. Renderizar el calendario con el foco en ese perfil
+                        renderCalendar(profileId);
+                        // 3. Cambiar la vista
+                        switchView('calendar');
+                    }
+                });
+            });
+        }
+
+
+        // --- Lógica del Calendario y Renderizado (Ajustada para vista individual) ---
+        
+        const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        // Extender el objeto Date para calcular el número de semana (necesario para la lógica de semanas)
+        Date.prototype.getWeekNumber = function() {
+            const d = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        };
+
+        /**
+         * Genera un array de semanas para el mes dado, enfocado en un profileId.
+         */
+        function generateMonthWeeks(date, profileToView) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDayOfMonth = new Date(year, month, 1);
+            // Determinar el inicio de la semana (Lunes)
+            const getStartOfWeek = (d) => {
+                 const day = d.getDay();
+                 // 0 = Domingo, 1 = Lunes
+                 const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                 // Empezar Lunes (Lunes = 1, Domingo = 0)
+                 const startOfWeek = new Date(d.setDate(diff));
+                 startOfWeek.setHours(0, 0, 0, 0);
+                 return startOfWeek;
+            };
+
+            let currentDate = getStartOfWeek(new Date(firstDayOfMonth));
+            const lastDayOfMonth = new Date(year, month + 1, 0);
+
+            const weeks = [];
+            while (currentDate <= lastDayOfMonth || currentDate.getMonth() === month) {
+                const weekDef = {
+                    name: `Semana ${weeks.length + 1}`,
+                    days: []
+                };
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(currentDate);
+                    const dayKey = `${day.getFullYear()}-${(day.getMonth() + 1).toString().padStart(2, '0')}-${day.getDate().toString().padStart(2, '0')}`;
+                    const isCurrentMonth = day.getMonth() === month;
+                    const isToday = day.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0);
+
+                    let dayMetadata = ALL_PROFILES_METADATA[dayKey] || {};
+                    
+                    // Lógica para determinar el estado del día en el calendario de este perfil
+                    let dayStatus = 'NOT_STARTED';
+                    let profilesWithFiles = 0;
+                    
+                    const dayPassedOrToday = isCurrentMonth && day.setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0);
+
+                    if (dayMetadata[profileToView]?.hasFile) {
+                         // El perfil que se está viendo SÍ cargó. Es COMPLETO.
+                         dayStatus = 'COMPLETE';
+                         profilesWithFiles = Object.values(dayMetadata).filter(p => p.hasFile).length;
+                    } else if (dayPassedOrToday) {
+                         // El día ya pasó y el perfil NO cargó. Es PENDIENTE.
+                         dayStatus = 'PENDING';
+                         profilesWithFiles = Object.values(dayMetadata).filter(p => p.hasFile).length;
+                         
+                         // Si otros cargaron, pero el actual no, se puede poner en PARCIAL (aunque para el perfil es PENDIENTE)
+                         if (profilesWithFiles > 0) {
+                             // dayStatus = 'PARTIAL'; // Se deja PENDING para enfatizar que este perfil necesita cargar.
+                         }
+                    } else {
+                         // Día futuro
+                         dayStatus = 'NOT_STARTED';
+                    }
+
+
+                    weekDef.days.push({
+                        date: day,
+                        dayNum: day.getDate(),
+                        dayName: DAY_NAMES[day.getDay()],
+                        key: dayKey,
+                        isCurrentMonth: isCurrentMonth,
+                        status: dayStatus,
+                        profilesWithFiles: profilesWithFiles,
+                        isToday: isToday
+                    });
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                weeks.push(weekDef);
+                if (currentDate.getMonth() !== month && currentDate.getDate() > 1) break;
+            }
+
+            return weeks;
+        }
+
+
+        /**
+         * Renderiza el calendario en el DOM para el perfil especificado.
+         */
+        function renderCalendar(profileIdToRender) {
+            const currentMonthDate = currentMonthPointer;
+            const year = currentMonthDate.getFullYear();
+            const monthName = MONTH_NAMES[currentMonthDate.getMonth()];
+            
+            const isMyOwnCalendar = profileIdToRender === PROFILE_ID;
+
+            document.getElementById('currentMonthTitle').innerHTML = `
+                <span class="text-indigo-600">${profileIdToRender}</span> - 
+                ${monthName} ${year} 
+                ${isMyOwnCalendar ? '<span class="text-sm font-normal text-gray-500">(Tu Panel de Carga)</span>' : '<span class="text-sm font-normal text-gray-500">(Solo Vista)</span>'}
+            `;
+
+            const weeks = generateMonthWeeks(currentMonthDate, profileIdToRender);
+            let monthHtml = '';
+
+            weeks.forEach(weekDef => {
+                const weekStart = weekDef.days.find(d => d.isCurrentMonth)?.date || weekDef.days[0].date;
+                const weekEnd = weekDef.days.findLast(d => d.isCurrentMonth)?.date || weekDef.days[6].date;
+                const weekKey = `W${weekStart.getFullYear()}-${weekStart.getWeekNumber()}`;
+                
+                let daysCompleted = 0;
+                let totalDaysInScope = 0;
+
+                weekDef.days.forEach(day => {
+                    if (day.isCurrentMonth && day.date.setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0)) {
+                        totalDaysInScope++;
+                         if (day.status === 'COMPLETE') {
+                            daysCompleted++;
+                        }
+                    }
+                });
+
+                let weekStatusClass = 'week-status-not-started';
+                let weekStatusText = 'NO APLICA';
+                
+                if (totalDaysInScope > 0) {
+                     if (daysCompleted === totalDaysInScope) {
+                        weekStatusClass = 'week-status-complete';
+                        weekStatusText = 'SEMANA COMPLETA';
+                    } else if (daysCompleted > 0) {
+                        weekStatusClass = 'week-status-partial';
+                        weekStatusText = 'EN PROGRESO';
+                    } else {
+                        weekStatusClass = 'week-status-pending';
+                        weekStatusText = 'PENDIENTE';
+                    }
+                }
+
+
+                let daysHtml = weekDef.days.map(day => {
+                    let dayStatusClass;
+                    let dayStatusText;
+                    let opacityClass = day.isCurrentMonth ? '' : 'opacity-40 pointer-events-none';
+                    let todayClass = day.isToday ? 'ring-2 ring-indigo-500 ring-offset-2' : '';
+                    
+                    // Si no es mi calendario, lo hago solo de vista y quito el cursor
+                    const clickableClass = isMyOwnCalendar ? 'cursor-pointer' : 'cursor-default pointer-events-none';
+                    
+                    switch (day.status) {
+                        case 'COMPLETE':
+                            dayStatusClass = 'status-complete';
+                            dayStatusText = `Evidencia CARGADA`;
+                            break;
+                        case 'PARTIAL':
+                            dayStatusClass = 'status-partial';
+                            dayStatusText = `CARGADO (${day.profilesWithFiles} Perfiles)`;
+                            break;
+                        case 'PENDING':
+                            dayStatusClass = 'status-pending';
+                            dayStatusText = 'SIN EVIDENCIA';
+                            break;
+                        case 'NOT_STARTED':
+                        default:
+                            dayStatusClass = 'status-not-started';
+                            dayStatusText = day.isCurrentMonth && day.date.setHours(0,0,0,0) <= new Date().setHours(0,0,0,0) ? 'PENDIENTE' : 'DÍA FUTURO';
+                            break;
+                    }
+
+                    return `
+                        <div class="day-card card p-2 border-l-4 ${dayStatusClass} ${opacityClass} ${todayClass} ${clickableClass}" data-day-key="${day.key}" data-viewing-profile="${profileIdToRender}">
+                            <span class="text-xs font-semibold text-gray-500">${day.dayName}</span>
+                            <span class="text-2xl font-bold block">${day.dayNum}</span>
+                            <div class="day-status text-center ${day.status === 'NOT_STARTED' ? 'opacity-0' : 'opacity-100'}">
+                                <span class="text-xs font-mono mt-1 text-white bg-gray-800 bg-opacity-70 px-2 py-1 rounded-full shadow-lg">${dayStatusText}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                monthHtml += `
+                    <div class="card p-5 shadow-lg">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b pb-3">
+                            <h4 class="text-lg font-bold text-gray-800">
+                                Semana del ${weekStart.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} al
+                                ${weekEnd.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                            </h4>
+                            <div class="mt-2 sm:mt-0 text-sm font-semibold text-white px-3 py-1 rounded-full ${weekStatusClass}">
+                                ${weekStatusText} (${daysCompleted} de ${totalDaysInScope} días)
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-7 gap-3" id="week-${weekKey}">
+                            ${daysHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('monthDisplay').innerHTML = monthHtml;
+            // Solo adjuntar listeners si es nuestro propio calendario de carga
+            if (isMyOwnCalendar) {
+                attachDayEventListeners();
+            }
+        }
+
+        /**
+         * Adjunta listeners a las tarjetas de día (Solo si es mi calendario).
+         */
+        function attachDayEventListeners() {
+            document.querySelectorAll('.day-card').forEach(card => {
+                // Verificar si la tarjeta es de mi calendario
+                if (card.getAttribute('data-viewing-profile') === PROFILE_ID) {
+                    card.addEventListener('click', () => {
+                        const dayKey = card.getAttribute('data-day-key');
+                        if (dayKey) {
+                            openEvidenceModal(dayKey);
+                        }
+                    });
+                }
+            });
+        }
+
+
+        // --- Lógica del Modal de Evidencia ---
+        // (Se mantiene casi idéntica, solo se asegura de usar PROFILE_ID para la carga)
+
+        let currentDayKey = null;
+        /**
+         * Abre el modal de evidencia para un día específico.
+         */
+        async function openEvidenceModal(dayKey) {
+            // ... (Se mantiene la lógica original)
+            if (!PROFILE_ID) {
+                 showMessage("Faltan Credenciales", "Necesitas configurar tu ID de Perfil y las credenciales de Gist para cargar evidencia.");
+                 return;
+            }
+
+            currentDayKey = dayKey;
+            document.getElementById('evidenceModalTitle').textContent = `Evidencia de: ${dayKey}`;
+            const evidenceDisplay = document.getElementById('evidenceDisplay');
+            const syncStatus = document.getElementById('syncStatus');
+            syncStatus.classList.add('hidden');
+            evidenceDisplay.innerHTML = '';
+            const dayMetadata = ALL_PROFILES_METADATA[dayKey] || {};
+            const myEvidenceKey = `${dayKey}_${PROFILE_ID}`; // La clave local SIEMPRE es con mi ID de Perfil
+            
+            // 1. Mostrar estado de sincronización del día
+            let evidenceListHtml = '<h4 class="text-lg font-semibold mb-2">Estado de Sincronización (Gist):</h4>';
+            const allProfilesInDay = Object.keys(dayMetadata).filter(id => id !== 'meta');
+            const myData = dayMetadata[PROFILE_ID];
+            evidenceListHtml += `<p class="text-sm font-semibold mb-1">${allProfilesInDay.length} Perfiles con Metadata.`;
+            
+            if (myData?.hasFile) {
+                evidenceListHtml += `<span class="text-green-600 ml-3">Tú has REGISTRADO tu evidencia.</span>`;
+            } else {
+                 evidenceListHtml += `<span class="text-red-600 ml-3">Tú NO has registrado tu evidencia.</span>`;
+            }
+            evidenceListHtml += '</p>';
+            evidenceListHtml += '<div class="mt-2 text-xs border-t pt-2">';
+            allProfilesInDay.forEach(id => {
+                 const data = dayMetadata[id];
+                 const isMine = id === PROFILE_ID;
+                 if (data && data.hasFile) {
+                     evidenceListHtml += `<p class="${isMine ? 'text-indigo-600 font-bold' : 'text-gray-700'}">✓ ${id} (Sync: ${new Date(data.updatedAt).toLocaleTimeString()})</p>`;
+                 }
+            });
+            evidenceListHtml += '</div>';
+            
+            evidenceDisplay.innerHTML += `<div class="mb-6 border p-3 rounded-lg bg-gray-50">${evidenceListHtml}</div>`;
+
+            // 2. Mostrar evidencia local o formulario
+            let fileBlob = await getFile(myEvidenceKey);
+            evidenceDisplay.innerHTML += `
+                <div id="fileSection">
+                   <h4 class="text-lg font-semibold mb-3 mt-4 text-indigo-800">Cargar / Ver tu Evidencia Local:</h4>
+                   <div id="localFilePreview" class="${fileBlob ? 'p-4 border rounded-lg bg-white shadow-inner mb-4' : 'hidden'}"></div>
+                   <div id="uploadFormContainer" class="${fileBlob ? 'hidden' : ''} p-4 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50">
+                        <input type="file" id="evidenceFileInput" accept="image/*,video/*,application/pdf" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                        <button id="uploadEvidenceBtn" class="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md w-full">
+                            Guardar Archivo y Sincronizar
+                        </button>
+                    </div>
+                    <div id="actionButtons" class="mt-3 flex space-x-3 justify-end ${fileBlob ? '' : 'hidden'}">
+                        <button id="viewLocalFileBtn" data-key="${myEvidenceKey}" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                            Ver Evidencia
+                        </button>
+                        <button id="replaceFileBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                            Reemplazar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Adjuntar Listeners
+            document.getElementById('uploadEvidenceBtn').addEventListener('click', handleFileUpload);
+            document.getElementById('replaceFileBtn').addEventListener('click', () => {
+                 document.getElementById('uploadFormContainer').classList.remove('hidden');
+                 document.getElementById('actionButtons').classList.add('hidden');
+            });
+            if (fileBlob) {
+                document.getElementById('viewLocalFileBtn').addEventListener('click', (e) => {
+                    displayFilePreview(fileBlob, document.getElementById('localFilePreview'));
+                    document.getElementById('localFilePreview').classList.remove('hidden');
+                    e.target.classList.add('hidden');
+                });
+            }
+
+
+            document.getElementById('evidenceModal').classList.remove('hidden');
+            document.getElementById('evidenceModal').classList.add('flex');
+        }
+
+        /**
+         * Maneja la carga de archivos.
+         */
+        async function handleFileUpload() {
+            const fileInput = document.getElementById('evidenceFileInput');
+            const file = fileInput.files[0];
+            const syncStatus = document.getElementById('syncStatus');
+
+            if (!file) {
+                showMessage("Error", "Por favor, selecciona un archivo.");
+                return;
+            }
+            if (!GIST_TOKEN) {
+                 showMessage("Error", "No puedes cargar evidencia sin un Token de GitHub para la escritura automática.");
+                 return;
+            }
+
+            const myEvidenceKey = `${currentDayKey}_${PROFILE_ID}`;
+            syncStatus.textContent = "Guardando archivo localmente...";
+            syncStatus.className = 'text-sm mt-4 p-2 rounded text-center bg-blue-100 text-blue-700';
+            syncStatus.classList.remove('hidden');
+            try {
+                // 1. Guardar el archivo binario en IndexedDB
+                await saveFile(myEvidenceKey, file);
+                syncStatus.textContent = "Archivo guardado. Sincronizando metadatos con Gist...";
+                syncStatus.className = 'text-sm mt-4 p-2 rounded text-center bg-yellow-100 text-yellow-700';
+
+                // 2. Sincronizar metadatos con el Gist
+                const success = await performWriteSync(currentDayKey);
+                if (success) {
+                    syncStatus.textContent = "¡Evidencia cargada y sincronizada con éxito!";
+                    syncStatus.className = 'text-sm mt-4 p-2 rounded text-center bg-green-100 text-green-700';
+                    // Reabrir modal para actualizar la vista
+                    setTimeout(() => {
+                         document.getElementById('evidenceModal').classList.add('hidden');
+                         document.getElementById('evidenceModal').classList.remove('flex');
+                         openEvidenceModal(currentDayKey);
+                    }, 1000);
+                } else {
+                    syncStatus.textContent = "Error al sincronizar metadatos. Archivo guardado localmente.";
+                    syncStatus.className = 'text-sm mt-4 p-2 rounded text-center bg-red-100 text-red-700';
+                }
+
+            } catch (error) {
+                console.error("Error al cargar evidencia:", error);
+                syncStatus.textContent = "Error crítico en la carga. Revisa la consola.";
+                syncStatus.className = 'text-sm mt-4 p-2 rounded text-center bg-red-100 text-red-700';
+            }
+        }
+
+
+        /**
+         * Muestra una vista previa del archivo.
+         */
+        function displayFilePreview(fileBlob, container) {
+            container.innerHTML = '';
+            const fileType = fileBlob.type;
+            const url = URL.createObjectURL(fileBlob);
+
+            if (fileType.startsWith('image/')) {
+                container.innerHTML = `<img src="${url}" class="max-w-full h-auto rounded-lg shadow-md mx-auto" style="max-height: 400px; object-fit: contain;">`;
+            } else if (fileType === 'application/pdf') {
+                container.innerHTML = `
+                    <p class="text-gray-600 mb-2 font-semibold">Previsualización de PDF (puede variar):</p>
+                    <iframe src="${url}" width="100%" height="400px" class="border rounded-lg"></iframe>
+                `;
+            } else if (fileType.startsWith('video/')) {
+                container.innerHTML = `
+                    <video controls src="${url}" class="max-w-full h-auto rounded-lg shadow-md mx-auto" style="max-height: 400px; object-fit: contain;"></video>
+                `;
+            } else {
+                container.innerHTML = `<p class="text-gray-600">Tipo de archivo no compatible con vista previa directa (${fileType}).</p>
+                                       <a href="${url}" target="_blank" download="evidencia_${currentDayKey}_${PROFILE_ID}" class="mt-2 text-indigo-600 hover:underline">Descargar para ver</a>`;
+            }
+        }
+
+
+        // --- Lógica de Utilidad y Setup ---
+
+        /**
+         * Solicita permiso para notificaciones.
+         */
+        function requestNotificationPermission() {
+            if ("Notification" in window) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        showMessage("Notificaciones", "Permiso de notificaciones concedido.");
+                    } else {
+                        showMessage("Notificaciones", "Permiso de notificaciones denegado.");
+                    }
+                });
+            } else {
+                showMessage("Notificaciones", "Este navegador no soporta notificaciones.");
+            }
+        }
+
+        // --- Event Listeners Globales y Setup ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Event Listeners del Modal de Configuración
+            document.getElementById('openConfigBtn').addEventListener('click', () => {
+                document.getElementById('profileIdInput').value = PROFILE_ID;
+                document.getElementById('gistIdInput').value = GIST_ID;
+                document.getElementById('gistTokenInput').value = GIST_TOKEN;
+                document.getElementById('configModal').classList.remove('hidden');
+                document.getElementById('configModal').classList.add('flex');
+            });
+            document.getElementById('closeConfigBtn').addEventListener('click', closeConfigModal);
+            
+            // Función auxiliar para cerrar modal de configuración
+            function closeConfigModal() {
+                document.getElementById('configModal').classList.add('hidden');
+                document.getElementById('configModal').classList.remove('flex');
+            }
+            
+            document.getElementById('saveConfigBtn').addEventListener('click', () => {
+                const newProfileId = document.getElementById('profileIdInput').value.trim();
+                const rawGistId = document.getElementById('gistIdInput').value.trim();
+                const newGistToken = document.getElementById('gistTokenInput').value.trim();
+                
+                const msg = document.getElementById('configMessage');
+
+                // Lógica para manejar URLs completas o solo IDs de Gist
+                const gistId = rawGistId.includes('/') ? rawGistId.split('/').pop().trim() : rawGistId;
+
+
+                if (!newProfileId || !gistId) {
+                    msg.textContent = "El ID de Perfil y el ID de Gist son obligatorios.";
+                    msg.className = 'mt-4 p-2 text-sm rounded bg-red-100 text-red-700';
+                    msg.classList.remove('hidden');
+                    return;
+                }
+             
+                
+                // Actualizar localStorage y variables globales inmediatamente
+                localStorage.setItem('profileId', newProfileId);
+                localStorage.setItem('gistId', gistId);
+                localStorage.setItem('gistToken', newGistToken);
+                
+                PROFILE_ID = newProfileId;
+                GIST_ID = gistId;
+                GIST_TOKEN = newGistToken;
+
+                msg.textContent = "Configuración guardada. Intentando sincronizar...";
+                msg.className = 'mt-4 p-2 text-sm rounded bg-green-100 text-green-700';
+                msg.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    closeConfigModal();
+                    initiateSync();
+                }, 1000);
+            });
+
+            // Event Listener del Botón de Notificaciones
+            document.getElementById('notifyBtn').addEventListener('click', requestNotificationPermission);
+            
+            // Event Listener para cerrar el Modal de Evidencia
+            document.getElementById('closeEvidenceModalBtn').addEventListener('click', () => {
+                 document.getElementById('evidenceModal').classList.add('hidden');
+                 document.getElementById('evidenceModal').classList.remove('flex');
+                 // Al cerrar el modal, si es mi propio calendario, fuerzo un re-render para reflejar el estado actualizado
+                 if (currentViewingProfile === PROFILE_ID) {
+                      renderCalendar(PROFILE_ID);
+                 }
+            });
+            
+            // NUEVO: Event Listener para Volver al Dashboard
+            document.getElementById('backToDashboardBtn').addEventListener('click', () => {
+                 currentViewingProfile = null; // Quitar foco en el perfil
+                 renderDashboard(); // Re-renderizar el Dashboard para actualizar estados
+                 switchView('dashboard'); // Cambiar a la vista de Dashboard
+            });
+            
+            // Iniciar la sincronización
+            initiateSync();
+        });
+
+        // Registro del Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js').then(registration => {
+                    console.log('ServiceWorker registrado con éxito:', registration);
+                }).catch(error => {
+                    console.log('Fallo el registro de ServiceWorker:', error);
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>
